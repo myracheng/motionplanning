@@ -1,0 +1,6 @@
+setup.py
+dubins.egg-info/PKG-INFO
+dubins.egg-info/SOURCES.txt
+dubins.egg-info/dependency_links.txt
+dubins.egg-info/requires.txt
+dubins.egg-info/top_level.txt
