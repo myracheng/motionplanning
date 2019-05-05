@@ -63,12 +63,21 @@ class DubinsEnv(gym.Env):
         return self._get_obs(), reward, self.arrived, {}
 
     def reset(self):
-        self.arrived = False;
+        self.arrived = False
         low = np.array([0, 0, -np.pi])
         high = np.array([self.width, self.height, np.pi])
         self.state = self.np_random.uniform(low=low, high=high)
         self.last_u = None
         return self._get_obs()
+
+    def get_reward(self, x_new, y_new):
+        distance = np.sqrt((x_new - self.x_g)**2 + (y_new - self.y_g)**2)
+        if (distance < 5):
+            reward = 100
+            self.arrived = True
+        else:
+            reward = -distance
+        return reward
 
     def _get_obs(self):
         x, y, theta = self.state

@@ -16,6 +16,7 @@ import time
 import tflearn
 import argparse
 import pprint as pp
+from rrt import RRT
 
 from replay_buffer import ReplayBuffer
 
@@ -285,11 +286,33 @@ def train(sess, env, args, actor, critic, actor_noise):
             if args['render_env']:
                 env.render()
 
-           
+             # START RRT
+            obstacleList = []
+            # Set Initial parameters
+            start = s
+            goal = [27.0, 13.0, np.deg2rad(0.0)]
 
-            # Added exploration noise
-            #a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
-            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
+            rrt = RRT(start, goal, randArea=[-2.0, 15.0], obstacleList=obstacleList, maxIter=10)
+            #get rewards from states
+
+            path = rrt.Planning(animation=False)
+            #END RRT
+
+            #FIND "BEST" NODE
+            max_node = None
+            max_reward = -99999999999
+            for node in path:
+                r = env.get_reward(node.x, node.y)
+                if r > max_reward:
+                    max_reward = r
+                    max_node = node
+            
+            rrt_state = [max_node.x, max_node.y, max_node.yaw]
+            rrt_weight = np.reshape(rrt_state, (1, actor.s_dim))
+            # a = actor.predict((np.reshape(s, (1, actor.s_dim))) + actor_noise()
+
+            #gamma is between 0 and 1
+            a = actor.predict(gamma(np.reshape(s, (1, actor.s_dim)) + (1- gamma)(rrt_weight)) + actor_noise()
 
             s2, r, terminal, info = env.step(a[0])
             if j == (int(args['max_episode_len']) - 1):
