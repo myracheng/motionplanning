@@ -261,6 +261,8 @@ def train(sess, env, args, actor, critic, actor_noise):
     name = str(args['actor_lr']) + '_' + str(args['critic_lr']) + '_' + timestr
     rewards = []
     steps = []
+    env = env.unwrapped
+
 
     # Initialize target network weights
     actor.update_target_network()
@@ -280,40 +282,42 @@ def train(sess, env, args, actor, critic, actor_noise):
 
         ep_reward = 0
         ep_ave_max_q = 0
-
+        rrt_state = []
         for j in range(int(args['max_episode_len'])):
 
             if args['render_env']:
                 env.render()
 
-             # START RRT
-            obstacleList = []
-            # Set Initial parameters
-            start = s
-            goal = [27.0, 13.0, np.deg2rad(0.0)]
+             # Calculate RRT every 100 steps.
+            if j % 100 == 0:
+                obstacleList = []
+                # Set Initial parameters
+                start = s
+                goal = [27.0, 13.0, np.deg2rad(0.0)]
 
-            rrt = RRT(start, goal, randArea=[-2.0, 15.0], obstacleList=obstacleList, maxIter=10)
-            #get rewards from states
+                rrt = RRT(start, goal, randArea=[-2.0, 15.0], obstacleList=obstacleList, maxIter=10)
+                #get rewards from states
 
-            path = rrt.Planning(animation=False)
-            #END RRT
-
-            #FIND "BEST" NODE
-            max_node = None
-            max_reward = -99999999999
-            for node in path:
-                r = env.get_reward(node.x, node.y)
-                if r > max_reward:
-                    max_reward = r
-                    max_node = node
+                path = rrt.Planning(animation=False) #returns list of nodes
+                #END RRT
+                #FIND "BEST" NODE
+                max_node = None
+                max_reward = -99999999999
+                for node in path:
+                    r = env.get_reward(node.x, node.y)
+                    if r > max_reward:
+                        max_reward = r
+                        max_node = node
             
-            rrt_state = [max_node.x, max_node.y, max_node.yaw]
-            rrt_weight = np.reshape(rrt_state, (1, actor.s_dim))
-            # a = actor.predict((np.reshape(s, (1, actor.s_dim))) + actor_noise()
+                rrt_state = [max_node.x, max_node.y, max_node.yaw]
 
-            #gamma is between 0 and 1
-            a = actor.predict(gamma(np.reshape(s, (1, actor.s_dim)) + (1- gamma)(rrt_weight)) + actor_noise()
-
+            gamma = 0.90
+            kp = 0.5 
+            kd = 0.2 #how to tune these parameters if there is no input feedback? maybe use multiples of d as in generate_course?
+            rrt_action = kp * (rrt_state[0] - s[0]) + kd * (np.cos(rrt_state[2]) - np.cos(s[2])) #wb y?
+            # print("action is %d" % rrt_action)
+            a = gamma * actor.predict(np.reshape(s, (1, actor.s_dim))) + (1- gamma) * (rrt_action) + actor_noise()
+            # a = actor.predict(np.reshape(s, (1, actor.s_dim)))
             s2, r, terminal, info = env.step(a[0])
             if j == (int(args['max_episode_len']) - 1):
                 terminal = True

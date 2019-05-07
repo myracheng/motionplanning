@@ -157,9 +157,9 @@ def dubins_path_planning_from_origin(ex, ey, eyaw, c):
             continue
 
         cost = (abs(t) + abs(p) + abs(q))
-        if bcost > cost:
+        if bcost > cost: #pick planner that minimizes costs
             bt, bp, bq, bmode = t, p, q, mode
-            bcost = cost
+            bcost = cost 
 
     #  print(bmode)
     px, py, pyaw = generate_course([bt, bp, bq], bmode, c)

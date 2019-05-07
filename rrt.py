@@ -68,7 +68,7 @@ class RRT():
         #     return None
 
         # path = self.gen_final_course(lastIndex)
-        print(len(self.nodeList))
+        # print(len(self.nodeList))
         return self.nodeList
 
     def pi_2_pi(self, angle):

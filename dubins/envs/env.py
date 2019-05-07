@@ -46,7 +46,7 @@ class DubinsEnv(gym.Env):
         y_new = y + (self.v * (np.sin(theta))*dt)
         y_new = np.clip(y_new, 0, self.width)
         
-        theta_new = theta + (u * dt) #how to update this based on u?
+        theta_new = theta + (u * dt)
         if theta_new < -np.pi:
             theta_new = theta_new + (2 * np.pi)
         elif theta_new > np.pi:
@@ -73,11 +73,9 @@ class DubinsEnv(gym.Env):
     def get_reward(self, x_new, y_new):
         distance = np.sqrt((x_new - self.x_g)**2 + (y_new - self.y_g)**2)
         if (distance < 5):
-            reward = 100
-            self.arrived = True
+            return 100
         else:
-            reward = -distance
-        return reward
+            return -distance
 
     def _get_obs(self):
         x, y, theta = self.state
