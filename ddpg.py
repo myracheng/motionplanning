@@ -343,7 +343,7 @@ def train(sess, env, args, actor, critic, actor_noise):
         # print('x: ' + str(s[0]) + ' y: ' + str(s[1]) + ' theta: ' + str(s[2]))
         # print('| Reward: {:d} | Episode: {:d} | Qmax: {:.4f}'.format(int(ep_reward), \
         #                 i, (ep_ave_max_q / float(j))))
-    with open('%s.json' % name, 'w') as outfile:
+    with open('obstacle_%s.json' % name, 'w') as outfile:
                     json.dump(rewards, outfile)
                     json.dump(steps, outfile)
 def main(args):

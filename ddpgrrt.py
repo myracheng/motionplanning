@@ -16,6 +16,7 @@ import time
 import tflearn
 import argparse
 import pprint as pp
+import matplotlib.pyplot as plt
 from rrt import RRT
 
 from replay_buffer import ReplayBuffer
@@ -263,7 +264,6 @@ def train(sess, env, args, actor, critic, actor_noise):
     steps = []
     env = env.unwrapped
 
-
     # Initialize target network weights
     actor.update_target_network()
     critic.update_target_network()
@@ -282,41 +282,53 @@ def train(sess, env, args, actor, critic, actor_noise):
 
         ep_reward = 0
         ep_ave_max_q = 0
-        rrt_state = []
+        # Calculate waypoints from RRT
+        # obstacleList = []
+        obstacleList = [
+        (36, 43, 2),
+        (12, 16, 2),
+        (24, 34, 2)
+        ]  # [x,y,size(radius)]
+        # Set Initial parameters
+        start = s
+        goal = [27.0, 13.0, np.deg2rad(0.0)]
+
+        rrt = RRT(start, goal, randArea=[0, 50.0], obstacleList=obstacleList)
+        
+        path = rrt.Planning(animation=False) #returns list of nodes
+        print(path)
+        # plt.plot([x for (x, y, z) in path], [y for (x, y, z) in path], '-o')
+        # plt.grid(True)
+        # plt.pause(10)
+        # plt.show()
+
+        #END RRT
+
         for j in range(int(args['max_episode_len'])):
 
             if args['render_env']:
                 env.render()
 
-             # Calculate RRT every 100 steps.
-            if j % 100 == 0:
-                obstacleList = []
-                # Set Initial parameters
-                start = s
-                goal = [27.0, 13.0, np.deg2rad(0.0)]
+            #find closest waypoint from RRT
+            min_node = None
 
-                rrt = RRT(start, goal, randArea=[-2.0, 15.0], obstacleList=obstacleList, maxIter=10)
-                #get rewards from states
+            min_dist = 100000
+            for node in path:
+                dist = np.sqrt((s[0] - node[0])**2 + (s[1] - node[1])**2)
+                if dist < min_dist:
+                    min_node = node
+                    min_dist = dist
 
-                path = rrt.Planning(animation=False) #returns list of nodes
-                #END RRT
-                #FIND "BEST" NODE
-                max_node = None
-                max_reward = -99999999999
-                for node in path:
-                    r = env.get_reward(node.x, node.y)
-                    if r > max_reward:
-                        max_reward = r
-                        max_node = node
-            
-                rrt_state = [max_node.x, max_node.y, max_node.yaw]
+            rrt_state = min_node
 
-            gamma = 0.90
+            gamma = 0.9
             kp = 0.5 
-            kd = 0.2 #how to tune these parameters if there is no input feedback? maybe use multiples of d as in generate_course?
+            kd = 0.2
             rrt_action = kp * (rrt_state[0] - s[0]) + kd * (np.cos(rrt_state[2]) - np.cos(s[2])) #wb y?
             # print("action is %d" % rrt_action)
+
             a = gamma * actor.predict(np.reshape(s, (1, actor.s_dim))) + (1- gamma) * (rrt_action) + actor_noise()
+
             # a = actor.predict(np.reshape(s, (1, actor.s_dim)))
             s2, r, terminal, info = env.step(a[0])
             if j == (int(args['max_episode_len']) - 1):
@@ -370,7 +382,7 @@ def train(sess, env, args, actor, critic, actor_noise):
         # print('x: ' + str(s[0]) + ' y: ' + str(s[1]) + ' theta: ' + str(s[2]))
         # print('| Reward: {:d} | Episode: {:d} | Qmax: {:.4f}'.format(int(ep_reward), \
         #                 i, (ep_ave_max_q / float(j))))
-    with open('%s.json' % name, 'w') as outfile:
+    with open('obstacles_%s.json' % name, 'w') as outfile:
                     json.dump(rewards, outfile)
                     json.dump(steps, outfile)
 def main(args):
@@ -425,8 +437,8 @@ if __name__ == '__main__':
     # run parameters
     parser.add_argument('--env', help='choose the gym env', default='Dubins-v0')
     parser.add_argument('--random-seed', help='random seed for repeatability', default=1234)
-    parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=2500) #50000
-    parser.add_argument('--max-episode-len', help='max length of 1 episode', default=5000) #1000
+    parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=1000) #50000
+    parser.add_argument('--max-episode-len', help='max length of 1 episode', default=1000) #1000
     parser.add_argument('--render-env', help='render the gym env', action='store_true')
     parser.add_argument('--use-gym-monitor', help='record gym results', action='store_true')
     parser.add_argument('--monitor-dir', help='directory for storing gym results', default='./results/gym_ddpg')

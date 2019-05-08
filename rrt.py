@@ -61,15 +61,15 @@ class RRT():
                 self.DrawGraph(rnd=rnd)
 
         # generate course
-        # lastIndex = self.get_best_last_index()
+        lastIndex = self.get_best_last_index()
         #  print(lastIndex)
 
-        # if lastIndex is None:
-        #     return None
+        if lastIndex is None:
+            return None
 
-        # path = self.gen_final_course(lastIndex)
+        path = self.gen_final_course(lastIndex)
         # print(len(self.nodeList))
-        return self.nodeList
+        return path
 
     def pi_2_pi(self, angle):
         return (angle + math.pi) % (2 * math.pi) - math.pi
@@ -123,15 +123,18 @@ class RRT():
 
         return None
 
+#returns list of nodes.
     def gen_final_course(self, goalind):
-        path = [[self.end.x, self.end.y, self.end.yaw]]
+        path = []
+        # path = [[self.end.x, self.end.y, self.end.yaw]]
         while self.nodeList[goalind].parent is not None:
             node = self.nodeList[goalind]
-            for (ix, iy, iyaw) in zip(reversed(node.path_x), reversed(node.path_y), reversed(node.path_yaw)):
-                path.append([ix, iy, iyaw])
-            #  path.append([node.x, node.y])
+            # for count, (ix, iy, iyaw) in enumerate(zip(reversed(node.path_x), reversed(node.path_y), reversed(node.path_yaw))):
+                # if count % 50 == 0:
+                    # path.append([ix, iy, iyaw])
+            path.append([node.x, node.y, node.yaw])
             goalind = node.parent
-        path.append([self.start.x, self.start.y, self.start.yaw])
+        # path.append([self.start.x, self.start.y, self.start.yaw])
         return path
 
     def calc_dist_to_goal(self, x, y):
@@ -212,15 +215,15 @@ def main():
 
     rrt = RRT(start, goal, randArea=[-2.0, 15.0], obstacleList=obstacleList)
     path = rrt.Planning(animation=show_animation)
-    print(len(path))
+    # print(len(path))
     # print(self.nodeList)
 
     # Draw final path
     # if show_animation:  # pragma: no cover
-    rrt.DrawGraph()
-    plt.plot([x for (x, y, z) in path], [y for (x, y, z) in path], '-r')
+    # rrt.DrawGraph()
+    plt.plot([x for (x, y, z) in path], [y for (x, y, z) in path], '-o')
     plt.grid(True)
-    plt.pause(0.001)
+    plt.pause(10)
     plt.show()
 
 

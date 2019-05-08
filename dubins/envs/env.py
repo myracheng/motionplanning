@@ -23,12 +23,27 @@ class DubinsEnv(gym.Env):
         high = np.array([self.width, self.height, np.pi])
         self.action_space = spaces.Box(low=-self.max_u, high=self.max_u, shape=(1,), dtype=np.float32)
         self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
-
+        self.obstacleList = [
+        (36, 43, 2),
+        (12, 16, 2),
+        (24, 34, 2)
+        ] 
         self.seed()
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
+
+    def isobstacle(self, ix, iy):
+        for (ox, oy, size) in self.obstacleList:
+                dx = ox - ix
+                dy = oy - iy
+                d = dx * dx + dy * dy
+                if d <= size ** 2:
+                    print('hit obstacle')
+                    return True # collision
+
+        return False  # safe
 
     def step(self, u):
         if self.arrived:
@@ -53,7 +68,9 @@ class DubinsEnv(gym.Env):
             theta_new = theta_new - (2 * np.pi)
        
         distance = np.sqrt((x_new - self.x_g)**2 + (y_new - self.y_g)**2)
-        if (distance < 5):
+        if self.isobstacle(x_new, y_new):
+            reward = -10000
+        elif (distance < 5):
             reward = 100
             self.arrived = True
         else:
@@ -62,6 +79,7 @@ class DubinsEnv(gym.Env):
         self.state = np.array([x_new, y_new, theta_new])
         return self._get_obs(), reward, self.arrived, {}
 
+    
     def reset(self):
         self.arrived = False
         low = np.array([0, 0, -np.pi])
@@ -71,6 +89,8 @@ class DubinsEnv(gym.Env):
         return self._get_obs()
 
     def get_reward(self, x_new, y_new):
+        if self.isobstacle(x_new, y_new):
+            return -10000
         distance = np.sqrt((x_new - self.x_g)**2 + (y_new - self.y_g)**2)
         if (distance < 5):
             return 100
