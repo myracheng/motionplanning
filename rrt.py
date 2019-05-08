@@ -129,10 +129,10 @@ class RRT():
         # path = [[self.end.x, self.end.y, self.end.yaw]]
         while self.nodeList[goalind].parent is not None:
             node = self.nodeList[goalind]
-            # for count, (ix, iy, iyaw) in enumerate(zip(reversed(node.path_x), reversed(node.path_y), reversed(node.path_yaw))):
-                # if count % 50 == 0:
-                    # path.append([ix, iy, iyaw])
-            path.append([node.x, node.y, node.yaw])
+            for count, (ix, iy, iyaw) in enumerate(zip(reversed(node.path_x), reversed(node.path_y), reversed(node.path_yaw))):
+                if count % 20 == 0:
+                    path.append([ix, iy, iyaw])
+            # path.append([node.x, node.y, node.yaw])
             goalind = node.parent
         # path.append([self.start.x, self.start.y, self.start.yaw])
         return path

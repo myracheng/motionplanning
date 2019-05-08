@@ -40,7 +40,7 @@ class DubinsEnv(gym.Env):
                 dy = oy - iy
                 d = dx * dx + dy * dy
                 if d <= size ** 2:
-                    print('hit obstacle')
+                    # print('hit obstacle')
                     return True # collision
 
         return False  # safe
@@ -85,6 +85,10 @@ class DubinsEnv(gym.Env):
         low = np.array([0, 0, -np.pi])
         high = np.array([self.width, self.height, np.pi])
         self.state = self.np_random.uniform(low=low, high=high)
+        while self.isobstacle(self.state[0], self.state[1]):
+            # print(self.state[2])
+            self.state = self.np_random.uniform(low=low, high=high) #make sure we're not starting at an obstacle.
+            # print(self.state[2])
         self.last_u = None
         return self._get_obs()
 

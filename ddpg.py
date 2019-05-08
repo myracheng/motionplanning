@@ -343,7 +343,7 @@ def train(sess, env, args, actor, critic, actor_noise):
         # print('x: ' + str(s[0]) + ' y: ' + str(s[1]) + ' theta: ' + str(s[2]))
         # print('| Reward: {:d} | Episode: {:d} | Qmax: {:.4f}'.format(int(ep_reward), \
         #                 i, (ep_ave_max_q / float(j))))
-    with open('obstacle_%s.json' % name, 'w') as outfile:
+    with open('obstacles_%s.json' % name, 'w') as outfile:
                     json.dump(rewards, outfile)
                     json.dump(steps, outfile)
 def main(args):
@@ -391,7 +391,7 @@ if __name__ == '__main__':
     parser.add_argument('--actor-lr', help='actor network learning rate', default=0.0001) #0.0001
     parser.add_argument('--critic-lr', help='critic network learning rate', default=0.001) #0.001
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
-    parser.add_argument('--tau', help='soft target update parameter', default=0.0001) #0.001
+    parser.add_argument('--tau', help='soft target update parameter', default=0.001) #0.001
     parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1000000)
     parser.add_argument('--minibatch-size', help='size of minibatch for minibatch-SGD', default=64)
 
