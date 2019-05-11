@@ -69,7 +69,7 @@ class DubinsEnv(gym.Env):
        
         distance = np.sqrt((x_new - self.x_g)**2 + (y_new - self.y_g)**2)
         if self.isobstacle(x_new, y_new):
-            reward = -10000
+            reward = -50
         elif (distance < 5):
             reward = 100
             self.arrived = True
@@ -94,7 +94,7 @@ class DubinsEnv(gym.Env):
 
     def get_reward(self, x_new, y_new):
         if self.isobstacle(x_new, y_new):
-            return -10000
+            return -50
         distance = np.sqrt((x_new - self.x_g)**2 + (y_new - self.y_g)**2)
         if (distance < 5):
             return 100

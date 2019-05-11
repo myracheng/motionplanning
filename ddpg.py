@@ -399,7 +399,7 @@ if __name__ == '__main__':
     parser.add_argument('--env', help='choose the gym env', default='Dubins-v0')
     parser.add_argument('--random-seed', help='random seed for repeatability', default=1234)
     parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=2500) #50000
-    parser.add_argument('--max-episode-len', help='max length of 1 episode', default=5000) #1000
+    parser.add_argument('--max-episode-len', help='max length of 1 episode', default=1000) #1000
     parser.add_argument('--render-env', help='render the gym env', action='store_true')
     parser.add_argument('--use-gym-monitor', help='record gym results', action='store_true')
     parser.add_argument('--monitor-dir', help='directory for storing gym results', default='./results/gym_ddpg')
