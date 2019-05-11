@@ -114,13 +114,20 @@ class RRT():
         disglist = [self.calc_dist_to_goal(
             node.x, node.y) for node in self.nodeList]
         goalinds = [disglist.index(i) for i in disglist if i <= 0.1]
-        #  print(goalinds)
 
-        mincost = min([self.nodeList[i].cost for i in goalinds])
-        for i in goalinds:
-            if self.nodeList[i].cost == mincost:
-                return i
+        if len(goalinds) > 0:
+            mincost = min([self.nodeList[i].cost for i in goalinds])
+            for i in goalinds:
+                if self.nodeList[i].cost == mincost:
+                    return i
+            print("bug1 here")
+            print(self.nodeList)
+            sys.exit()
 
+            return None
+        print("bug 2 here")
+        print(self.nodeList)
+        sys.exit()
         return None
 
 #returns list of nodes.
@@ -200,31 +207,41 @@ class Node():
 def main():
     print("Start " + __file__)
     # ====Search Path with RRT====
-    obstacleList = [
+    # obstacleList = [
         # (5, 5, 1),
         # (3, 6, 2),
         # (3, 8, 2),
         # (3, 10, 2),
         # (7, 5, 2),
         # (9, 5, 2)
-    ]  # [x,y,size(radius)]
-
+    # ]  # [x,y,size(radius)]
+    obstacleList = [
+        (36, 43, 2),
+        (12, 16, 2),
+        (24, 34, 2)
+    ] 
     # Set Initial parameters
-    start = [0.0, 0.0, np.deg2rad(0.0)]
-    goal = [10.0, 10.0, np.deg2rad(0.0)]
+    # for i in range (50):
+        # for j in range(50):
+    start = [7, 42, np.deg2rad(0.0)] #starting at obstacle.
+    # goal = [10.0, 10.0, np.deg2rad(0.0)]
+    goal = [27.0, 13.0, np.deg2rad(0.0)]
+    print(start)
+    rrt = RRT(start, goal, randArea=[0, 50.0], obstacleList=obstacleList)
+    
+    path = rrt.Planning(animation=False) #returns list of nodes
+    print(path)
+            # path = rrt.Planning(animation=show_animation)
+            # print(len(path))
+            # print(self.nodeList)
 
-    rrt = RRT(start, goal, randArea=[-2.0, 15.0], obstacleList=obstacleList)
-    path = rrt.Planning(animation=show_animation)
-    # print(len(path))
-    # print(self.nodeList)
-
-    # Draw final path
-    # if show_animation:  # pragma: no cover
-    # rrt.DrawGraph()
-    plt.plot([x for (x, y, z) in path], [y for (x, y, z) in path], '-o')
-    plt.grid(True)
-    plt.pause(10)
-    plt.show()
+            # Draw final path
+            # if show_animation:  # pragma: no cover
+            # rrt.DrawGraph()
+            # plt.plot([x for (x, y, z) in path], [y for (x, y, z) in path], '-o')
+            # plt.grid(True)
+            # plt.pause(10)
+            # plt.show()
 
 
 if __name__ == '__main__':

@@ -288,19 +288,16 @@ def train(sess, env, args, actor, critic, actor_noise):
         (36, 43, 2),
         (12, 16, 2),
         (24, 34, 2)
-        ]  # [x,y,size(radius)]
+        ]  # (x,y, radius)
         # Set Initial parameters
         start = s
+        print(s)
         goal = [27.0, 13.0, np.deg2rad(0.0)]
 
         rrt = RRT(start, goal, randArea=[0, 50.0], obstacleList=obstacleList)
         
         path = rrt.Planning(animation=False) #returns list of nodes
-        print(path)
-        # plt.plot([x for (x, y, z) in path], [y for (x, y, z) in path], '-o')
-        # plt.grid(True)
-        # plt.pause(10)
-        # plt.show()
+        # print(path)
 
         #END RRT
 
@@ -309,27 +306,32 @@ def train(sess, env, args, actor, critic, actor_noise):
             if args['render_env']:
                 env.render()
 
+
             #find closest waypoint from RRT
             min_node = None
 
             min_dist = 100000
-            for node in path:
-                dist = np.sqrt((s[0] - node[0])**2 + (s[1] - node[1])**2)
-                if dist < min_dist:
-                    min_node = node
-                    min_dist = dist
+            if len(path) > 0:
+                for node in path:
+                    dist = np.sqrt((s[0] - node[0])**2 + (s[1] - node[1])**2)
+                    if dist < min_dist:
+                        min_node = node
+                        min_dist = dist
 
             rrt_state = min_node
-
             gamma = 0.9
-            kp = 0.5 
+            kp = -0.5 
             kd = 0.2
-            rrt_action = kp * (rrt_state[0] - s[0]) + kd * (np.cos(rrt_state[2]) - np.cos(s[2])) #wb y?
-            # print("action is %d" % rrt_action)
 
-            a = gamma * actor.predict(np.reshape(s, (1, actor.s_dim))) + (1- gamma) * (rrt_action) + actor_noise()
+            a1 = actor.predict(np.reshape(s, (1, actor.s_dim)))
 
-            # a = actor.predict(np.reshape(s, (1, actor.s_dim)))
+            if rrt_state is not None:
+                rrt_action = kp * (rrt_state[0] - s[0]) + kd * (np.cos(rrt_state[2]) - np.cos(s[2])) #wb y?
+                a = gamma * a1 + (1- gamma) * (rrt_action) + actor_noise()
+
+            else:
+                a = a1 + actor_noise()
+
             s2, r, terminal, info = env.step(a[0])
             if j == (int(args['max_episode_len']) - 1):
                 terminal = True
@@ -385,6 +387,7 @@ def train(sess, env, args, actor, critic, actor_noise):
     with open('rrt_obstacles_%s.json' % name, 'w') as outfile:
                     json.dump(rewards, outfile)
                     json.dump(steps, outfile)
+                    
 def main(args):
 
     with tf.Session() as sess:
@@ -437,7 +440,7 @@ if __name__ == '__main__':
     # run parameters
     parser.add_argument('--env', help='choose the gym env', default='Dubins-v0')
     parser.add_argument('--random-seed', help='random seed for repeatability', default=1234)
-    parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=1000) #50000
+    parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=2500) #50000
     parser.add_argument('--max-episode-len', help='max length of 1 episode', default=1000) #1000
     parser.add_argument('--render-env', help='render the gym env', action='store_true')
     parser.add_argument('--use-gym-monitor', help='record gym results', action='store_true')
