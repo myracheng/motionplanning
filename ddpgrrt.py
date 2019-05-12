@@ -311,7 +311,7 @@ def train(sess, env, args, actor, critic, actor_noise):
             min_node = None
 
             min_dist = 100000
-            if len(path) > 0:
+            if path is not None:
                 for node in path:
                     dist = np.sqrt((s[0] - node[0])**2 + (s[1] - node[1])**2)
                     if dist < min_dist:
@@ -320,13 +320,13 @@ def train(sess, env, args, actor, critic, actor_noise):
 
             rrt_state = min_node
             gamma = 0.9
-            kp = -0.5 
-            kd = 0.2
+            kp = 2.5
+            kd = 2
 
             a1 = actor.predict(np.reshape(s, (1, actor.s_dim)))
 
             if rrt_state is not None:
-                rrt_action = kp * (rrt_state[0] - s[0]) + kd * (np.cos(rrt_state[2]) - np.cos(s[2])) #wb y?
+                rrt_action = kp * (rrt_state[0] - s[0]) + kp * (rrt_state[1] - s[1]) + kd * (np.cos(rrt_state[2]) - np.cos(s[2]))
                 a = gamma * a1 + (1- gamma) * (rrt_action) + actor_noise()
 
             else:
@@ -384,7 +384,7 @@ def train(sess, env, args, actor, critic, actor_noise):
         # print('x: ' + str(s[0]) + ' y: ' + str(s[1]) + ' theta: ' + str(s[2]))
         # print('| Reward: {:d} | Episode: {:d} | Qmax: {:.4f}'.format(int(ep_reward), \
         #                 i, (ep_ave_max_q / float(j))))
-    with open('rrt_obstacles_%s.json' % name, 'w') as outfile:
+    with open('rrt_xy_obstacles_%s.json' % name, 'w') as outfile:
                     json.dump(rewards, outfile)
                     json.dump(steps, outfile)
                     

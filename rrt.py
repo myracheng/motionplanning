@@ -120,14 +120,14 @@ class RRT():
             for i in goalinds:
                 if self.nodeList[i].cost == mincost:
                     return i
-            print("bug1 here")
-            print(self.nodeList)
+            # print("bug1 here") 
+            # print(self.nodeList)
             sys.exit()
 
             return None
-        print("bug 2 here")
-        print(self.nodeList)
-        sys.exit()
+        # print("bug 2 here")
+        # print(self.nodeList)
+        # sys.exit()
         return None
 
 #returns list of nodes.
