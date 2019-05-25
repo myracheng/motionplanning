@@ -8,14 +8,15 @@ Author: Patrick Emami
 """
 import tensorflow as tf
 import numpy as np
-import gym
-from gym import wrappers
-import dubins
+#import gym
+from env import DubinsEnv
+#import dubins
 import json
 import time
 import tflearn
 import argparse
 import pprint as pp
+import random
 
 from replay_buffer import ReplayBuffer
 
@@ -75,10 +76,10 @@ class ActorNetwork(object):
 
     def create_actor_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        net = tflearn.fully_connected(inputs, 400)
+        net = tflearn.fully_connected(inputs, 100)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
-        net = tflearn.fully_connected(net, 300)
+        net = tflearn.fully_connected(net, 100)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
@@ -284,9 +285,7 @@ def train(sess, env, args, actor, critic, actor_noise):
 
             if args['render_env']:
                 env.render()
-
            
-
             # Added exploration noise
             #a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
             a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
@@ -350,7 +349,8 @@ def main(args):
 
     with tf.Session() as sess:
 
-        env = gym.make(args['env'])
+        env = DubinsEnv()
+        #env = gym.make(args['env'])
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
@@ -372,20 +372,14 @@ def main(args):
         
         actor_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(action_dim))
 
-        if args['use_gym_monitor']:
-            if not args['render_env']:
-                env = wrappers.Monitor(
-                    env, args['monitor_dir'], video_callable=False, force=True)
-            else:
-                env = wrappers.Monitor(env, args['monitor_dir'], force=True)
 
         train(sess, env, args, actor, critic, actor_noise)
 
-        if args['use_gym_monitor']:
-            env.monitor.close()
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
+
+    # Set a random seed for each run                                            
+    rand_seed = random.randrange(1000000)
 
     # agent parameters
     parser.add_argument('--actor-lr', help='actor network learning rate', default=0.0001) #0.0001
@@ -397,15 +391,15 @@ if __name__ == '__main__':
 
     # run parameters
     parser.add_argument('--env', help='choose the gym env', default='Dubins-v0')
-    parser.add_argument('--random-seed', help='random seed for repeatability', default=1234)
+    parser.add_argument('--random-seed', help='random seed for repeatability', default=rand_seed)
     parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=2500) #50000
-    parser.add_argument('--max-episode-len', help='max length of 1 episode', default=1000) #1000
+    parser.add_argument('--max-episode-len', help='max length of 1 episode', default=200) #1000
     parser.add_argument('--render-env', help='render the gym env', action='store_true')
     parser.add_argument('--use-gym-monitor', help='record gym results', action='store_true')
     parser.add_argument('--monitor-dir', help='directory for storing gym results', default='./results/gym_ddpg')
     parser.add_argument('--summary-dir', help='directory for storing tensorboard info', default='./results/tf_ddpg')
 
-    parser.set_defaults(render_env=False)
+    parser.set_defaults(render_env=True)
     parser.set_defaults(use_gym_monitor=False)
     
     args = vars(parser.parse_args())

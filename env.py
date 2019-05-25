@@ -18,7 +18,7 @@ class DubinsEnv(gym.Env):
         self.x_g = 27 #goal x
         self.y_g = 13 #goal y
         self.v = 1 #fixed forward velocity
-        self.max_u = 10
+        self.max_u = 3
         self.dt = 0.2
         self.arrived = False;
         low = np.array([0, 0, -np.pi])
@@ -31,11 +31,15 @@ class DubinsEnv(gym.Env):
         (24, 34, 2)
         ] 
         self.seed()
-        
+
         self.fig, self.ax = plt.subplots(1)
+        plt.ion()
+        plt.show()
         self.ax.add_patch(patches.Circle((self.x_g, self.y_g), 5.0, facecolor='g'))
         for i in range(len(self.obstacleList)):
             self.ax.add_patch(patches.Circle((self.obstacleList[i][0], self.obstacleList[i][1]), self.obstacleList[i][2], facecolor='r'))
+        self.state_circle = patches.Circle((0.,0.), 0.5, facecolor='b')
+        self.ax.add_patch(self.state_circle)
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -66,7 +70,7 @@ class DubinsEnv(gym.Env):
         x_new = np.clip(x_new, 0, self.width)
 
         y_new = y + (self.v * (np.sin(theta))*dt)
-        y_new = np.clip(y_new, 0, self.width)
+        y_new = np.clip(y_new, 0, self.height)
         
         theta_new = theta + (u * dt)
         if theta_new < -np.pi:
@@ -116,12 +120,21 @@ class DubinsEnv(gym.Env):
 
     def render(self):
         x, y, _ = self.state
-        plt.cla()
+        self.state_circle.remove()
+        self.state_circle = patches.Circle((x,y), 0.5, facecolor='b')
+        self.ax.add_patch(self.state_circle)
+        
+        '''
         for i in range(len(self.obstacleList)):
             self.ax.add_patch(patches.Circle((self.obstacleList[i][0], self.obstacleList[i][1]), self.obstacleList[i][2], facecolor='r')) 
         self.ax.add_patch(patches.Circle((self.x_g, self.y_g), 5, facecolor='g'))
-        self.ax.add_patch(patches.Circle((x, y), 0.5, facecolor='b')) 
-        plt.show()
+        self.ax.add_patch(patches.Circle((x, y), 0.5, facecolor='b'))
+        '''
+        plt.ylim((0,50))
+        plt.xlim((0,50))
+        plt.draw()
+        plt.pause(0.001)
+        #plt.show()
         #return self.viewer.render(return_rgb_array = mode=='rgb_array')
 
     def close(self):
