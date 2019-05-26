@@ -50,12 +50,21 @@ class DubinsEnv(gym.Env):
                 dx = ox - ix
                 dy = oy - iy
                 d = dx * dx + dy * dy
-                if d <= (size + 0.1) ** 2:
-                    # print('hit obstacle')
+                if d <= (size + 0.01) ** 2:
+                    #print('hit obstacle')
                     return True # collision
 
         return False  # safe
 
+    def getPrior(self, ix, iy, ith):
+        kp = 1
+        dx = self.x_g - ix
+        dy = self.y_g - iy
+        th = np.arctan2(dy, dx)
+        dth = th - ith
+        u_pr = kp*dth
+        return np.clip(u_pr, -self.max_u, self.max_u)
+        
     def step(self, u):
         if self.arrived:
             raise RuntimeError("Episode is done")
@@ -85,7 +94,8 @@ class DubinsEnv(gym.Env):
             reward = 200
             self.arrived = True
         else:
-            reward = -distance
+            #reward = -1
+            reward = -0.2*distance
 
         self.state = np.array([x_new, y_new, theta_new])
         return self._get_obs(), reward, self.arrived, {}
@@ -95,7 +105,8 @@ class DubinsEnv(gym.Env):
         self.arrived = False
         low = np.array([0, 0, -np.pi])
         high = np.array([self.width, self.height, np.pi])
-        self.state = self.np_random.uniform(low=low, high=high)
+        #self.state = self.np_random.uniform(low=low, high=high)
+        self.state = np.array([10, 40, 0.5])
         while self.isobstacle(self.state[0], self.state[1]):
             # print(self.state[2])
             print("found that this is obstacle")

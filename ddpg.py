@@ -40,6 +40,7 @@ class ActorNetwork(object):
         self.learning_rate = learning_rate
         self.tau = tau
         self.batch_size = batch_size
+        self.l_mix = 4.0
 
         # Actor Network
         self.inputs, self.out, self.scaled_out = self.create_actor_network()
@@ -79,9 +80,11 @@ class ActorNetwork(object):
         net = tflearn.fully_connected(inputs, 100)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
+        '''
         net = tflearn.fully_connected(net, 100)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
+        '''
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
         out = tflearn.fully_connected(
@@ -162,14 +165,14 @@ class CriticNetwork(object):
     def create_critic_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
-        net = tflearn.fully_connected(inputs, 400)
+        net = tflearn.fully_connected(inputs, 300)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
-        t1 = tflearn.fully_connected(net, 300)
-        t2 = tflearn.fully_connected(action, 300)
+        t1 = tflearn.fully_connected(net, 200)
+        t2 = tflearn.fully_connected(action, 200)
 
         net = tflearn.activation(
             tf.matmul(net, t1.W) + tf.matmul(action, t2.W) + t2.b, activation='relu')
@@ -211,7 +214,7 @@ class CriticNetwork(object):
 # Taken from https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py, which is
 # based on http://math.stackexchange.com/questions/1287634/implementing-ornstein-uhlenbeck-in-matlab
 class OrnsteinUhlenbeckActionNoise:
-    def __init__(self, mu, sigma=0.3, theta=.15, dt=1e-2, x0=None):
+    def __init__(self, mu, sigma=0.2, theta=.15, dt=1e-2, x0=None):
         self.theta = theta
         self.mu = mu
         self.sigma = sigma
@@ -256,7 +259,6 @@ def train(sess, env, args, actor, critic, actor_noise):
     summary_ops, summary_vars = build_summaries()
 
     sess.run(tf.global_variables_initializer())
-    writer = tf.summary.FileWriter(args['summary_dir'], sess.graph)
     timestr = time.strftime("%Y%m%d-%H%M%S")
     name = str(args['actor_lr']) + '_' + str(args['critic_lr']) + '_' + timestr
     rewards = []
@@ -283,18 +285,24 @@ def train(sess, env, args, actor, critic, actor_noise):
 
         for j in range(int(args['max_episode_len'])):
 
-            if args['render_env']:
+            if i % 10 == 0 and args['render_env']:
                 env.render()
            
             # Added exploration noise
             #a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
-            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
-
-            s2, r, terminal, info = env.step(a[0])
+            a_pr = env.getPrior(s[0],s[1],s[2])
+            if i < 1000:
+                a_rl = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
+            else:
+                a_rl = actor.predict(np.reshape(s, (1, actor.s_dim)))
+            a = a_rl[0]/(1+actor.l_mix) + actor.l_mix*a_pr/(1+actor.l_mix)
+            
+            s2, r, terminal, info = env.step(a)
+            '''
             if j == (int(args['max_episode_len']) - 1):
                 terminal = True
-            # print(s2)
-            replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
+            '''
+            replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a_rl, (actor.a_dim,)), r,
                               terminal, np.reshape(s2, (actor.s_dim,)))
 
             # Keep adding experience to the memory until
@@ -332,7 +340,7 @@ def train(sess, env, args, actor, critic, actor_noise):
             s = s2
             ep_reward += r
 
-            if terminal:
+            if terminal or j == (int(args['max_episode_len']) - 1):
                 data = 'x: ' + str(s[0]) + ' y: ' + str(s[1]) + ' theta: ' + str(s[2]) + '\n' \
                 + ('| Reward: {:d} | Episode: {:d} | Steps: {:d}'.format(int(ep_reward), i, j))
                 rewards.append(int(ep_reward))
@@ -349,15 +357,15 @@ def main(args):
 
     with tf.Session() as sess:
 
-        env = DubinsEnv()
         #env = gym.make(args['env'])
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
+        env = DubinsEnv()
         env.seed(int(args['random_seed']))
 
         state_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
-        action_bound = env.action_space.high
+        action_bound = env.max_u
         # Ensure action bound is symmetric
         assert (env.action_space.high == -env.action_space.low)
 
@@ -383,16 +391,16 @@ if __name__ == '__main__':
 
     # agent parameters
     parser.add_argument('--actor-lr', help='actor network learning rate', default=0.0001) #0.0001
-    parser.add_argument('--critic-lr', help='critic network learning rate', default=0.001) #0.001
+    parser.add_argument('--critic-lr', help='critic network learning rate', default=0.0001) #0.001
     parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
-    parser.add_argument('--tau', help='soft target update parameter', default=0.001) #0.001
+    parser.add_argument('--tau', help='soft target update parameter', default=0.0001) #0.001
     parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1000000)
-    parser.add_argument('--minibatch-size', help='size of minibatch for minibatch-SGD', default=64)
+    parser.add_argument('--minibatch-size', help='size of minibatch for minibatch-SGD', default=128)
 
     # run parameters
     parser.add_argument('--env', help='choose the gym env', default='Dubins-v0')
     parser.add_argument('--random-seed', help='random seed for repeatability', default=rand_seed)
-    parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=2500) #50000
+    parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=2000) #50000
     parser.add_argument('--max-episode-len', help='max length of 1 episode', default=200) #1000
     parser.add_argument('--render-env', help='render the gym env', action='store_true')
     parser.add_argument('--use-gym-monitor', help='record gym results', action='store_true')
